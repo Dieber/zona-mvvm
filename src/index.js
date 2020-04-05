@@ -1,5 +1,6 @@
-import {Stack} from 'learn-data-struct'
+import {Stack, BinTree} from 'learn-data-struct'
 import {isTagStart, isTagEnd} from './utils/is'
+import insertToTree from './parser/insertToTree'
 
 // TODO: 异步更新，触发update
 
@@ -20,29 +21,28 @@ function MYMv(options) {
   mount(this, this._mounted)
 }
 
-
 function mount(context, mountedFunction) {
-  context._vd = parseToVirtualDom(context._template, context._data)
+  context._vd = parseToVirtualDomTree(context._template, context._data)
   mountedFunction && mountedFunction.call(context)
 }
 
 function update(context, updateFunction) {
-  context._vd = parseToVirtualDom(context._template, context._data)
+  context._vd = parseToVirtualDomTree(context._template, context._data)
+  
   updateFunction && updateFunction.call(context)
 }
-
-
-
 // 流程：
-// 需要三个栈，分出Tag标签的栈，分出完整Tag的栈，node栈
-//
+// 需要两个个栈，分出Tag标签的栈，分出完整Tag的栈
 
-function parseToVirtualDom(templateString, data) {
-  let level = 0 // 之后要生成树的层级
-  let stackTag = new Stack()
-  let stackNode = new Stack()
+
+
+function parseToVirtualDomTree(templateString, data) {
+  let tagStack = new Stack() // 
+  let nodeStack = new Stack()
+  let nodeTree = new BinTree()
 
   for (let i = 0; i < templateString.length; i++) {
+
     if (templateString.charAt(i) === '<') {
       let j = i + 1
       while(templateString.charAt(j) !== '>') {
@@ -52,11 +52,21 @@ function parseToVirtualDom(templateString, data) {
 
       // 查看tagString是否和最后一个一致
       if (isTagStart(tagString)) {
-        stackTag.push(tagString)
-        level++
+        tagStack.push(tagString)
+        let virtualNode = genVirtualNode(tagString)
+        let node
+        if (nodeStack.isEmpty()) {
+          node = nodeTree.insertAsRoot(virtualNode)
+        } else {
+          console.log(nodeStack)
+          let stackTopNode = nodeStack.getTop()
+          node = insertToTree(nodeTree, stackTopNode, virtualNode)
+        }
+        nodeStack.push(node)
       }
       if (isTagEnd(tagString)) {
-        stackNode.push(genVirtualNode(stackTag.pop(), --level))
+        tagStack.pop()
+        nodeStack.pop()
       }
       i = j
       continue;
@@ -67,58 +77,69 @@ function parseToVirtualDom(templateString, data) {
         j++
       }
       let variableString = templateString.substring(i + 2, j).trim()
-      console.log(variableString)
-
       // 若data中没有variableString
 
       if (data[variableString]) {
-        stackNode.push(genTextNode(data[variableString], level))
+        let textNode = genTextNode(data[variableString])
+        insertToTree(nodeTree, nodeStack.getTop(), textNode)
       } else {
         throw Error('Your Variable dosen\'t show in data' )
       }
       i = j + 1
       continue;
-    } else if (templateString.charAt(i) !== ''){
-      // 普通的字符变量
-      let j = i + 1
-      while(templateString.charAt(j) !== '' && templateString.charAt(j) !== '<'  && templateString.charAt(j) !== '{') {
+    } else if (templateString.charAt(i) !== ' '){
+      // 普通的字符
+      let j = i
+      while(templateString.charAt(j + 1) !== ' ' && templateString.charAt(j + 1) !== '<'  && templateString.charAt(j + 1) !== '{') {
         j++
       }
-      let textNodeString = templateString.substring(i, j)
-      console.log(j)
-      stackNode.push(genTextNode(textNodeString, level))
-      i = j - 1
+      let textNodeString = templateString.substring(i, j + 1)
+      insertToTree(nodeTree, nodeStack.getTop(), textNodeString)
+      i = j
     }
   }
-  console.log(stackNode)
+  if (!tagStack.isEmpty()) {
+    throw Error('Tag don\'t match!')
+  }
+  return 
 }
 
-function genTextNode(text, level) {
+
+
+function genTextNode(text) {
   return {
     type: 'text',
     text,
-    level
   }
 }
 
-function genVirtualNode(tagStart, level) {
+function genVirtualNode(tagStart) {
   let tagName = tagStart.substring(1, tagStart.length - 1)
   return {
     type: 'tag',
     tagName,
-    level
   }
 }
 
 
 
 let j = new MYMv({
-  template: `<div><span><span>刘海了</span></span> {{goo}}<span>{{switch}}</span>{{goo}}厉害了</div>`,
+  template: `<div><span><span>刘海 </span></span> {{goo}}<span>{{switch}}</span>{{goo}}厉害了</div>`,
   data: {
-    switch: '我叫你骚气',
-    goo: '非常没毛病'
+    switch: 'switch',
+    goo: 'goo'
   }
 })
+
+// let j = new MYMv({
+//   template: `<a><b1><c></c></b1><b2></b2><b3><d></d></b3></a>`,
+//   data: {
+//     switch: 'switch',
+//     goo: 'goo'
+//   }
+// })
+
+
 
 
 function watchAllProperty (context, vmData) {
