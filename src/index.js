@@ -1,7 +1,7 @@
 import {Stack, BinTree} from 'learn-data-struct'
 import {isTagStart, isTagEnd} from './utils/is'
 import insertToTree from './parser/insertToTree'
-
+import parseVirtualDomToDom from './parser/parseVirtualDomToDom'
 // TODO: 异步更新，触发update
 
 
@@ -21,14 +21,20 @@ function MYMv(options) {
   mount(this, this._mounted)
 }
 
+MYMv.prototype.$mount = function(parentDom) {
+  this.parentDom = parentDom
+  parseVirtualDomToDom(this._vd, parentDom)
+}
+
+
 function mount(context, mountedFunction) {
-  context._vd = parseToVirtualDomTree(context._template, context._data)
+  context._vd = parseTemplateToVirtualDomTree(context._template, context._data)
   mountedFunction && mountedFunction.call(context)
 }
 
 function update(context, updateFunction) {
-  context._vd = parseToVirtualDomTree(context._template, context._data)
-  
+  context._vd = parseTemplateToVirtualDomTree(context._template, context._data)
+  parseVirtualDomToDom(context._vd, context.parentDom)
   updateFunction && updateFunction.call(context)
 }
 // 流程：
@@ -36,7 +42,7 @@ function update(context, updateFunction) {
 
 
 
-function parseToVirtualDomTree(templateString, data) {
+function parseTemplateToVirtualDomTree(templateString, data) {
   let tagStack = new Stack() // 
   let nodeStack = new Stack()
   let nodeTree = new BinTree()
@@ -58,7 +64,6 @@ function parseToVirtualDomTree(templateString, data) {
         if (nodeStack.isEmpty()) {
           node = nodeTree.insertAsRoot(virtualNode)
         } else {
-          console.log(nodeStack)
           let stackTopNode = nodeStack.getTop()
           node = insertToTree(nodeTree, stackTopNode, virtualNode)
         }
@@ -93,7 +98,7 @@ function parseToVirtualDomTree(templateString, data) {
       while(templateString.charAt(j + 1) !== ' ' && templateString.charAt(j + 1) !== '<'  && templateString.charAt(j + 1) !== '{') {
         j++
       }
-      let textNodeString = templateString.substring(i, j + 1)
+      let textNodeString = genTextNode(templateString.substring(i, j + 1))
       insertToTree(nodeTree, nodeStack.getTop(), textNodeString)
       i = j
     }
@@ -101,7 +106,7 @@ function parseToVirtualDomTree(templateString, data) {
   if (!tagStack.isEmpty()) {
     throw Error('Tag don\'t match!')
   }
-  return 
+  return nodeTree
 }
 
 
@@ -128,17 +133,21 @@ let j = new MYMv({
   data: {
     switch: 'switch',
     goo: 'goo'
-  }
+  },
+  mounted() {
+    let i = 0
+    setInterval(() => {
+      this._data.switch = 'switch' + (++i)
+    }, 1000)
+  },
+
 })
 
-// let j = new MYMv({
-//   template: `<a><b1><c></c></b1><b2></b2><b3><d></d></b3></a>`,
-//   data: {
-//     switch: 'switch',
-//     goo: 'goo'
-//   }
-// })
 
+
+
+
+j.$mount(document.querySelector('#app'))
 
 
 
