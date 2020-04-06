@@ -47,7 +47,7 @@ new MYMv({
     </span>
       {{goo}} 
     <span> 
-    {{switch}}
+      {{switch}}
     </span>
       {{goo}}厉害了
     </div>`,

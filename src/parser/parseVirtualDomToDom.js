@@ -28,7 +28,6 @@ export default function parseVirtualDomToDom (virtualDomTree, parentDom) {
   }
 }
 
-
 function generateDomOrTextNodeByBinNode (binNode) {
   let vNode = binNode.getData()
   if (vNode.type === 'tag') {
