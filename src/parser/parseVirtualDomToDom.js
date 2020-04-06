@@ -1,6 +1,3 @@
-import {Stack} from 'learn-data-struct'
-import insertToTree from '../parser/insertToTree'
-
 export default function parseVirtualDomToDom (virtualDomTree, parentDom) {
   if (virtualDomTree._root === null) {
     return
