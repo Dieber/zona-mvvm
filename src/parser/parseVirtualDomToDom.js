@@ -1,13 +1,14 @@
 import {Stack} from 'learn-data-struct'
+import insertToTree from '../parser/insertToTree'
 
 export default function parseVirtualDomToDom (virtualDomTree, parentDom) {
   if (virtualDomTree._root === null) {
     return
   }
-  
   let rootNode = virtualDomTree.getRoot()
   let rootDom = generateDomOrTextNodeByBinNode(rootNode)
-
+  // 遍历二叉树生成Dom树算法
+  // TODO:使用迭代的方式解决
   function visit(node, dom) {
     while (node) {
       let nodeDom = generateDomOrTextNodeByBinNode(node)
@@ -19,8 +20,12 @@ export default function parseVirtualDomToDom (virtualDomTree, parentDom) {
     }
   }
   visit(rootNode, rootDom)
-  parentDom.innerHTML = ''
-  parentDom.appendChild(rootDom)
+
+  if (parentDom.children[0]) {
+    parentDom.children[0].replaceWith(rootDom)
+  } else {
+    parentDom.appendChild(rootDom)
+  }
 }
 
 
