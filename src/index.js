@@ -1,5 +1,6 @@
 import parseStringToVirtualDom  from './parser/parseStringToVirtualDom'
-import parseVirtualDomToDom from './parser/parseVirtualDomToDom'
+import parseVirtualDomToFragment from './parser/parseVirtualDomToFragment'
+import Dep from './observer/dep'
 // TODO: 异步更新，触发update
 
 
@@ -14,25 +15,26 @@ function MYMv(options) {
   this._mounted = options.mounted
   this._created= options.created
   this._update= options.update
+  this._dep = new Dep()
   watchAllProperty(this, this._data)
   this._created && this._created()
-  mount(this, this._mounted)
+  this._vdt = parseStringToVirtualDom(this)
+  this._mounted && this._mounted()
 }
 
 MYMv.prototype.$mount = function(parentDom) {
-  this.parentDom = parentDom
-  parseVirtualDomToDom(this._vd, parentDom)
+  this._parentDom = parentDom
+  let fragment = document.createDocumentFragment()
+  parseVirtualDomToFragment(this._vdt, fragment)
+  parentDom.appendChild(fragment)
+  return this
 }
 
 
-function mount(context, mountedFunction) {
-  context._vd = parseStringToVirtualDom(context._template, context._data)
-  mountedFunction && mountedFunction.call(context)
-}
 
 function update(context, updateFunction) {
-  context._vd = parseStringToVirtualDom(context._template, context._data)
-  parseVirtualDomToDom(context._vd, context.parentDom)
+  context._vdt = parseStringToVirtualDom(context._template, context._data)
+  parseVirtualDomToFragment(context._vdt, context.parentDom)
   updateFunction && updateFunction.call(context)
 }
 
@@ -43,6 +45,9 @@ new MYMv({
   template: 
   `<div>
     <span>
+      <span>刘海 </span>
+      <div>刘海 </div>
+      <span>刘海 </span>
       <span>刘海 </span>
     </span>
       {{goo}} 
@@ -66,17 +71,20 @@ new MYMv({
 
 
 function watchAllProperty (context, vmData) {
-  let keys = Object.keys(vmData)
-  let watchObj = {}
-  keys.forEach((item) => {
-    watchObj[item] = vmData[item]
-    Object.defineProperty(vmData, item, {
+  Object.keys(vmData).forEach((key) => {
+    let oldValue = vmData[key]
+    Object.defineProperty(vmData, key, {
       set(value) {
-        update(context)
-        watchObj[item] = value
+        if (oldValue === value) {
+          return
+        }
+        context._dep.notify();
+        // update(context)
+        oldValue = value
       },
       get() {
-        return watchObj[item]
+        // console.log(1233)
+        return oldValue
       }
     })
   })

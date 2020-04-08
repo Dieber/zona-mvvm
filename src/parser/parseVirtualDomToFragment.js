@@ -1,4 +1,4 @@
-export default function parseVirtualDomToDom (virtualDomTree, parentDom) {
+export default function parseVirtualDomToFragment (virtualDomTree, parentDom) {
   if (virtualDomTree._root === null) {
     return
   }

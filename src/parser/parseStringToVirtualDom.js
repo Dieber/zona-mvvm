@@ -2,8 +2,12 @@ import { genTextNode, genVirtualNode } from '../generator/generateNode'
 import {Stack, BinTree} from 'learn-data-struct'
 import {isTagStart, isTagEnd} from '../utils/is'
 import insertToTree from './insertToTree'
+import Watcher from '../observer/watcher'
+import { DIRECTIVE_TYPE } from '../utils/consts'
 
-export default function parseStringToVirtualDom(templateString, data) {
+export default function parseStringToVirtualDom(context) {
+  let templateString = context._template
+  let data = context._data
   let tagStack = new Stack() // 
   let nodeStack = new Stack()
   let nodeTree = new BinTree()
@@ -41,11 +45,12 @@ export default function parseStringToVirtualDom(templateString, data) {
         j++
       }
       let variableString = templateString.substring(i + 2, j).trim()
-      // 若data中没有variableString
       if (data[variableString]) {
         let textNode = genTextNode(data[variableString])
         insertToTree(nodeTree, nodeStack.getTop(), textNode)
+        new Watcher(context, textNode, variableString, DIRECTIVE_TYPE.NODE_VALUE);
       } else {
+        // 若data中没有variableString
         throw Error('Your Variable dosen\'t show in data' )
       }
       i = j + 1
@@ -56,8 +61,9 @@ export default function parseStringToVirtualDom(templateString, data) {
       while(templateString.charAt(j + 1) !== ' ' && templateString.charAt(j + 1) !== '<'  && templateString.charAt(j + 1) !== '{') {
         j++
       }
-      let textNodeString = genTextNode(templateString.substring(i, j + 1))
-      insertToTree(nodeTree, nodeStack.getTop(), textNodeString)
+      let textNode = genTextNode(templateString.substring(i, j + 1))
+      insertToTree(nodeTree, nodeStack.getTop(), textNode)
+
       i = j
     }
   }
